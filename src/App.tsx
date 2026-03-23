@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BreachRecord, checkBreaches } from './breachData';
+import { BreachRecord, DataSource, checkBreaches } from './breachData';
 import SearchForm from './SearchForm';
 import BreachResults from './BreachResults';
 import Recommendations from './Recommendations';
@@ -9,16 +9,24 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<BreachRecord[] | null>(null);
   const [searchedEmail, setSearchedEmail] = useState('');
+  const [error, setError] = useState('');
+
+  /* Data source settings */
+  const [dataSource, setDataSource] = useState<DataSource>('demo');
+  const [apiKey, setApiKey] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
 
   const handleSearch = async (email: string) => {
     setIsLoading(true);
     setResults(null);
     setSearchedEmail(email);
+    setError('');
 
     try {
-      const data = await checkBreaches(email);
+      const data = await checkBreaches(email, { dataSource, apiKey });
       setResults(data);
-    } catch {
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
       setResults([]);
     } finally {
       setIsLoading(false);
@@ -28,6 +36,7 @@ export default function App() {
   const handleReset = () => {
     setResults(null);
     setSearchedEmail('');
+    setError('');
   };
 
   return (
@@ -49,10 +58,86 @@ export default function App() {
           </svg>
           <span className="logo-text">BreachGuard</span>
         </div>
+        <button
+          id="settings-toggle"
+          className={`settings-btn ${showSettings ? 'active' : ''}`}
+          onClick={() => setShowSettings(!showSettings)}
+          title="Data source settings"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5"/>
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" strokeWidth="1.5"/>
+          </svg>
+        </button>
       </header>
 
+      {/* Settings panel */}
+      {showSettings && (
+        <div className="settings-panel fade-in">
+          <div className="settings-inner">
+            <h3 className="settings-title">Data Source</h3>
+            <div className="source-toggle">
+              <button
+                className={`source-btn ${dataSource === 'demo' ? 'active' : ''}`}
+                onClick={() => setDataSource('demo')}
+              >
+                🧪 Demo Data
+              </button>
+              <button
+                className={`source-btn ${dataSource === 'hibp' ? 'active' : ''}`}
+                onClick={() => setDataSource('hibp')}
+              >
+                🔐 HIBP API
+              </button>
+            </div>
+            {dataSource === 'hibp' && (
+              <div className="api-key-section fade-in">
+                <label className="api-key-label" htmlFor="api-key-input">
+                  HIBP API Key
+                  <a
+                    href="https://haveibeenpwned.com/API/Key"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="api-key-link"
+                  >
+                    Get a key →
+                  </a>
+                </label>
+                <input
+                  id="api-key-input"
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="Enter your HIBP API key..."
+                  className="api-key-input"
+                />
+                <p className="api-key-note">
+                  Your key stays in your browser and is never stored or sent anywhere except HIBP.
+                </p>
+              </div>
+            )}
+            {dataSource === 'demo' && (
+              <p className="demo-note fade-in">
+                Using simulated breach data. Try <code>john@example.com</code>, <code>alice@example.com</code>, or <code>jane@example.com</code>.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       <main className="app-main">
-        <SearchForm onSearch={handleSearch} isLoading={isLoading} />
+        <SearchForm onSearch={handleSearch} isLoading={isLoading} dataSource={dataSource} />
+
+        {error && (
+          <div className="error-banner fade-in">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="#ef4444" strokeWidth="1.5"/>
+              <line x1="15" y1="9" x2="9" y2="15" stroke="#ef4444" strokeWidth="2" strokeLinecap="round"/>
+              <line x1="9" y1="9" x2="15" y2="15" stroke="#ef4444" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <span>{error}</span>
+          </div>
+        )}
 
         {results !== null && (
           <>
@@ -73,7 +158,12 @@ export default function App() {
       </main>
 
       <footer className="app-footer">
-        <p>&copy; 2025 BreachGuard. For educational purposes. Data is simulated.</p>
+        <p>
+          &copy; 2025 BreachGuard.
+          {dataSource === 'hibp'
+            ? ' Powered by HaveIBeenPwned.com API.'
+            : ' For educational purposes. Data is simulated.'}
+        </p>
       </footer>
     </div>
   );

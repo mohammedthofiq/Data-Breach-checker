@@ -13,17 +13,16 @@ interface Tip {
 
 function getRecommendations(results: BreachRecord[]): Tip[] {
   const tips: Tip[] = [];
-  const allExposed = new Set(results.flatMap(r => r.dataExposed));
+  const allClasses = new Set(results.flatMap(r => r.DataClasses.map(c => c.toLowerCase())));
   const hasCritical = results.some(r => r.severity === 'critical');
-  const hasPasswordLeak = Array.from(allExposed).some(d =>
-    d.toLowerCase().includes('password')
+
+  const hasPasswordLeak = Array.from(allClasses).some(c => c.includes('password'));
+  const hasFinancialLeak = Array.from(allClasses).some(c =>
+    c.includes('credit') || c.includes('bank') || c.includes('financial')
   );
-  const hasFinancialLeak = Array.from(allExposed).some(d =>
-    d.toLowerCase().includes('credit') || d.toLowerCase().includes('billing')
-  );
-  const hasPhoneLeak = allExposed.has('Phone Number');
-  const hasIdentityLeak = Array.from(allExposed).some(d =>
-    d.toLowerCase().includes('passport') || d.toLowerCase().includes('ssn')
+  const hasPhoneLeak = Array.from(allClasses).some(c => c.includes('phone'));
+  const hasIdentityLeak = Array.from(allClasses).some(c =>
+    c.includes('passport') || c.includes('ssn') || c.includes('government')
   );
 
   if (hasPasswordLeak) {

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
+import { DataSource } from './breachData';
 
 interface SearchFormProps {
   onSearch: (email: string) => void;
   isLoading: boolean;
+  dataSource: DataSource;
 }
 
-export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
+export default function SearchForm({ onSearch, isLoading, dataSource }: SearchFormProps) {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
 
@@ -64,7 +66,10 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
         Data Breach <span className="gradient-text">Checker</span>
       </h1>
       <p className="hero-subtitle">
-        Find out if your email has been compromised in a data breach. Enter your email below to scan our database.
+        Find out if your email has been compromised in a data breach.
+        {dataSource === 'hibp'
+          ? ' Powered by the Have I Been Pwned API.'
+          : ' Enter your email below to scan our database.'}
       </p>
 
       <form onSubmit={handleSubmit} className="search-form" id="search-form">
@@ -97,7 +102,7 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
           {isLoading ? (
             <>
               <span className="spinner"></span>
-              Scanning...
+              Scanning{dataSource === 'hibp' ? ' HIBP...' : '...'}
             </>
           ) : (
             <>
@@ -111,9 +116,16 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
         </button>
       </form>
 
-      <p className="test-hint">
-        Try: <code>john@example.com</code>, <code>alice@example.com</code>, or <code>jane@example.com</code>
-      </p>
+      {dataSource === 'demo' && (
+        <p className="test-hint">
+          Try: <code>john@example.com</code>, <code>alice@example.com</code>, or <code>jane@example.com</code>
+        </p>
+      )}
+      {dataSource === 'hibp' && (
+        <p className="test-hint">
+          🔐 Querying <strong>Have I Been Pwned</strong> — enter any real email address
+        </p>
+      )}
     </div>
   );
 }
